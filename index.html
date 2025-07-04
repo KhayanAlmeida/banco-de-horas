@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Banco de Horas Pro</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/pt-br.min.js"></script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-text-size-adjust: 100%;
+            overscroll-behavior-y: contain;
+        }
+        input, select, button, textarea {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            font-size: 16px !important;
+            min-height: 44px; /* Tamanho mínimo para toque */
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            opacity: 0;
+            position: absolute;
+            right: 0;
+            width: 100%;
+            height: 100%;
+        }
+        input[type="date"]:before {
+            content: attr(placeholder) !important;
+            color: #6b7280;
+            margin-right: 0.5em;
+        }
+        input[type="date"]:focus:before, input[type="date"]:valid:before {
+            content: "" !important;
+        }
+        button, [role="button"] {
+            touch-action: manipulation;
+            user-select: none;
+        }
+        .status-pendente {
+            color: #d97706;
+            font-weight: 500;
+        }
+        .status-confirmado {
+            color: #059669;
+            font-weight: 500;
+        }
+        .senha-input {
+            letter-spacing: 0.2em;
+            font-size: 18px !important;
+        }
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 640px) {
+            .grid-cols-2 {
+                grid-template-columns: 1fr 1fr !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex flex-col min-h-screen">
+        <!-- Barra de Navegação -->
+        <div class="sticky top-0 z-10 bg-white p-3 border-b shadow-sm">
+            <div class="flex items-center justify-between">
+                <button onclick="history.back()" class="text-gray-800 flex w-10 h-10 items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256">
+                        <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path>
+                    </svg>
+                </button>
+                <h2 class="text-gray-900 text-lg font-bold text-center px-2 flex-1" id="tituloPagina">Registrar</h2>
+                <div class="w-10"></div>
+            </div>
+        </div>
+
+        <!-- Abas de Navegação -->
+        <div class="flex border-b sticky top-14 z-10 bg-white shadow-sm">
+            <button id="abaHoras" class="flex-1 py-3 font-medium text-blue-600 border-b-2 border-blue-600 text-sm">Registrar</button>
+            <button id="abaCadastro" class="flex-1 py-3 font-medium text-gray-500 text-sm">Cadastro</button>
+            <button id="abaHistorico" class="flex-1 py-3 font-medium text-gray-500 text-sm">Histórico</button>
+        </div>
+
+        <!-- Conteúdo da Aba de Registrar Horas -->
+        <div id="conteudoHoras" class="flex-grow overflow-y-auto pb-20">
+            <div class="p-4 space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ID do Funcionário</label>
+                    <input
+                        id="idFuncionarioInput"
+                        class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Digite o ID (2 dígitos)"
+                        maxlength="2"
+                        pattern="\d{2}"
+                        inputmode="numeric"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                    <input
+                        id="dataInput"
+                        type="date"
+                        class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Selecione a data"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Horas Extras</label>
+                    <input
+                        id="horasExtrasInput"
+                        class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ex: 2.5"
+                        inputmode="decimal"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                    <textarea
+                        id="observacoesInput"
+                        class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                        placeholder="Descreva a razão das horas extras (obrigatório)"
+                        required
+                    ></textarea>
+                </div>
+                <button
+                    id="registrarHorasBtn"
+                    class="w-full py-3 bg-blue-600 text-white rounded-lg font-medium mt-2 active:bg-blue-700 transition-colors"
+                >
+                    Registrar Horas
+                </button>
+            </div>
+        </div>
+
+        <!-- Conteúdo da Aba de Cadastro -->
+        <div id="conteudoCadastro" class="flex-grow overflow-y-auto pb-20 hidden">
+            <!-- Formulário de Cadastro -->
+            <div id="formContainer" class="p-4 hidden">
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                        <input
+                            id="nomeInput"
+                            class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Digite o nome"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
+                        <input
+                            id="cargoInput"
+                            class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Digite o cargo"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ID (2 dígitos)</label>
+                        <input
+                            id="idInput"
+                            class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ex: 01"
+                            maxlength="2"
+                            pattern="\d{2}"
+                            inputmode="numeric"
+                        >
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-4">
+                    <button
+                        id="cancelarBtn"
+                        class="flex-1 py-2 px-4 bg-gray-200 text-gray-800 rounded-lg font-medium active:bg-gray-300 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        id="salvarBtn"
+                        class="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg font-medium active:bg-blue-700 transition-colors"
+                    >
+                        Salvar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Funcionários -->
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-lg font-bold text-gray-900">Funcionários</h2>
+                    <span class="text-xs text-gray-500" id="totalFuncionarios">0 cadastrados</span>
+                </div>
+                
+                <div id="listaFuncionarios" class="space-y-2">
+                    <!-- Funcionários serão adicionados dinamicamente aqui -->
+                </div>
+            </div>
+
+            <!-- Botões de Exportação -->
+            <div class="p-4 border-t mt-2">
+                <div class="grid grid-cols-2 gap-3">
+                    <button
+                        id="exportPdfBtn"
+                        class="py-2 px-4 bg-gray-200 text-gray-800 rounded-lg font-medium text-sm active:bg-gray-300 transition-colors"
+                    >
+                        Exportar PDF
+                    </button>
+                    <button
+                        id="exportExcelBtn"
+                        class="py-2 px-4 bg-gray-200 text-gray-800 rounded-lg font-medium text-sm active:bg-gray-300 transition-colors"
+                    >
+                        Exportar Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo da Aba de Histórico -->
+        <div id="conteudoHistorico" class="flex-grow overflow-y-auto pb-20 hidden">
+            <div class="p-4">
+                <h2 class="text-lg font-bold text-gray-900 mb-3">Histórico</h2>
+                
+                <!-- Filtros -->
+                <div class="bg-gray-100 p-3 rounded-lg space-y-3 mb-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input 
+                                id="dataInicialFilter" 
+                                type="date" 
+                                class="w-full p-2 rounded-lg bg-white border-none"
+                                placeholder="Data inicial"
+                            >
+                            <input 
+                                id="dataFinalFilter" 
+                                type="date" 
+                                class="w-full p-2 rounded-lg bg-white border-none"
+                                placeholder="Data final"
+                            >
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Funcionário</label>
+                        <select 
+                            id="funcionarioFilter" 
+                            class="w-full p-2 rounded-lg bg-white border-none"
+                        >
+                            <option value="">Todos</option>
+                            <!-- Opções serão preenchidas dinamicamente -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select 
+                            id="statusFilter" 
+                            class="w-full p-2 rounded-lg bg-white border-none"
+                        >
+                            <option value="">Todos</option>
+                            <option value="Pendente">Pendentes</option>
+                            <option value="Confirmado">Confirmados</option>
+                        </select>
+                    </div>
+                    <button
+                        id="aplicarFiltroBtn"
+                        class="w-full py-2 bg-blue-600 text-white rounded-lg font-medium active:bg-blue-700 transition-colors"
+                    >
+                        Aplicar Filtros
+                    </button>
+                </div>
+                
+                <!-- Resumo -->
+                <div class="bg-gray-100 p-3 rounded-lg mb-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm text-gray-700">Total de Horas Confirmadas</p>
+                            <p class="text-xl font-bold text-blue-600" id="totalHorasHistorico">0</p>
+                        </div>
+                        <p class="text-xs text-gray-600 text-right" id="periodoSelecionado">Todos os registros</p>
+                    </div>
+                </div>
+                
+                <!-- Lista -->
+                <div id="listaHistorico" class="space-y-2">
+                    <!-- Registros serão adicionados dinamicamente aqui -->
+                </div>
+                <div id="semRegistrosHistorico" class="text-center py-8 text-gray-500 hidden">
+                    Nenhum registro encontrado
+                </div>
+            </div>
+        </div>
+
+        <!-- Botão Flutuante de Adicionar -->
+        <div id="addButtonContainer" class="fixed bottom-0 left-0 right-0 bg-white p-3 border-t shadow-lg hidden">
+            <button
+                id="addFuncionarioBtn"
+                class="w-full max-w-md mx-auto py-2 bg-blue-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 active:bg-blue-700 transition-colors"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
+                    <path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V64H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"></path>
+                </svg>
+                <span class="text-sm">Adicionar Funcionário</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal para edição de horas extras -->
+    <div id="modalEdicaoHoras" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-4 w-full max-w-sm mx-4 modal-content">
+            <h3 class="text-lg font-bold mb-3">Editar Horas</h3>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Senha</label>
+                    <input
+                        type="password"
+                        id="senhaEdicaoInput"
+                        placeholder="Digite a senha"
+                        class="w-full p-2 border rounded-lg senha-input"
+                    >
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Novo Valor</label>
+                    <input
+                        type="number"
+                        step="0.5"
+                        id="novasHorasInput"
+                        placeholder="Horas extras"
+                        class="w-full p-2 border rounded-lg"
+                        inputmode="decimal"
+                    >
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Observações</label>
+                    <textarea
+                        id="novaObservacaoInput"
+                        class="w-full p-2 border rounded-lg min-h-[80px]"
+                        placeholder="Observações"
+                    ></textarea>
+                </div>
+                
+                <div class="flex justify-end gap-2">
+                    <button
+                        id="cancelarEdicaoBtn"
+                        class="px-3 py-1.5 bg-gray-200 rounded-lg text-sm active:bg-gray-300 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        id="confirmarEdicaoBtn"
+                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm active:bg-blue-700 transition-colors"
+                    >
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação do Superior -->
+    <div id="modalConfirmacao" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-4 w-full max-w-sm mx-4 modal-content">
+            <h3 class="text-lg font-bold mb-3">Confirmação do Superior</h3>
+            <div class="space-y-3">
+                <p class="text-sm text-gray-600">Digite a senha para confirmar as horas extras:</p>
+                <input
+                    type="password"
+                    id="senhaConfirmacaoInput"
+                    placeholder="Digite a senha"
+                    class="w-full p-2 border rounded-lg senha-input"
+                >
+                <div class="flex justify-end gap-2">
+                    <button
+                        id="cancelarConfirmacaoBtn"
+                        class="px-3 py-1.5 bg-gray-200 rounded-lg text-sm active:bg-gray-300 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        id="confirmarHorasBtn"
+                        class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm active:bg-green-700 transition-colors"
+                    >
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Senha para Acesso -->
+    <div id="modalSenhaAcesso" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-4 w-full max-w-sm mx-4 modal-content">
+            <h3 class="text-lg font-bold mb-3">Acesso Restrito</h3>
+            <div class="space-y-3">
+                <p class="text-sm text-gray-600">Digite a senha para acessar esta área:</p>
+                <input
+                    type="password"
+                    id="senhaAcessoInput"
+                    placeholder="Digite a senha"
+                    class="w-full p-2 border rounded-lg senha-input"
+                >
+                <div class="flex justify-end gap-2">
+                    <button
+                        id="cancelarAcessoBtn"
+                        class="px-3 py-1.5 bg-gray-200 rounded-lg text-sm active:bg-gray-300 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        id="confirmarAcessoBtn"
+                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm active:bg-blue-700 transition-colors"
+                    >
+                        Acessar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      // Variáveis globais
+      let funcionarios = [];
+      let registrosHoras = [];
+      let modoEdicao = false;
+      let funcionarioEditando = null;
+      let abaAtiva = 'horas';
+      let registroEditandoIndex = null;
+      const SENHA_EDICAO = '4959';
+      const SENHA_SUPERIOR = '4959';
+      const SENHA_ACESSO = '4959';
+      let registroParaConfirmar = null;
+      let abaSolicitada = null;
+
+      // Inicialização
+      document.addEventListener('DOMContentLoaded', function() {
+        // Configuração inicial
+        moment.locale('pt-br');
+        
+        // Carrega dados do localStorage
+        carregarDados();
+        
+        // Configura data atual como padrão
+        const hoje = new Date();
+        document.getElementById('dataInput').valueAsDate = hoje;
+        document.getElementById('dataFinalFilter').valueAsDate = hoje;
+        
+        // Atualiza a interface
+        atualizarListaFuncionarios();
+        
+        // Event Listeners otimizados para mobile
+        document.getElementById('addFuncionarioBtn').addEventListener('click', mostrarFormulario);
+        document.getElementById('cancelarBtn').addEventListener('click', esconderFormulario);
+        document.getElementById('salvarBtn').addEventListener('click', salvarFuncionario);
+        document.getElementById('registrarHorasBtn').addEventListener('click', registrarHorasExtras);
+        
+        // Exportação
+        document.getElementById('exportPdfBtn').addEventListener('click', exportarParaPDF);
+        document.getElementById('exportExcelBtn').addEventListener('click', exportarParaExcel);
+        
+        // Navegação entre abas
+        document.getElementById('abaCadastro').addEventListener('click', () => verificarSenhaAcesso('cadastro'));
+        document.getElementById('abaHoras').addEventListener('click', () => alternarAba('horas'));
+        document.getElementById('abaHistorico').addEventListener('click', () => verificarSenhaAcesso('historico'));
+        
+        // Modal de edição
+        document.getElementById('cancelarEdicaoBtn').addEventListener('click', fecharModalEdicao);
+        document.getElementById('confirmarEdicaoBtn').addEventListener('click', confirmarEdicaoHoras);
+        
+        // Modal de confirmação
+        document.getElementById('cancelarConfirmacaoBtn').addEventListener('click', cancelarConfirmacao);
+        document.getElementById('confirmarHorasBtn').addEventListener('click', confirmarHoras);
+        
+        // Modal de senha para acesso
+        document.getElementById('cancelarAcessoBtn').addEventListener('click', cancelarAcesso);
+        document.getElementById('confirmarAcessoBtn').addEventListener('click', confirmarAcesso);
+        
+        // Filtros do histórico
+        document.getElementById('aplicarFiltroBtn').addEventListener('click', aplicarFiltroHistorico);
+        
+        // Previne zoom em inputs no iOS
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+      });
+
+      // Função para verificar senha antes de acessar abas restritas
+      function verificarSenhaAcesso(aba) {
+        if (aba === 'horas') {
+          alternarAba(aba);
+          return;
+        }
+        
+        abaSolicitada = aba;
+        document.getElementById('modalSenhaAcesso').classList.remove('hidden');
+        document.getElementById('senhaAcessoInput').value = '';
+        document.getElementById('senhaAcessoInput').focus();
+        
+        // Fecha o teclado virtual após 1s se não for preenchido
+        setTimeout(() => {
+          if (!document.getElementById('senhaAcessoInput').value) {
+            document.getElementById('senhaAcessoInput').blur();
+          }
+        }, 1000);
+      }
+
+      function cancelarAcesso() {
+        document.getElementById('modalSenhaAcesso').classList.add('hidden');
+        abaSolicitada = null;
+      }
+
+      function confirmarAcesso() {
+        const senha = document.getElementById('senhaAcessoInput').value;
+        
+        if (senha !== SENHA_ACESSO) {
+          alert('Senha incorreta!');
+          document.getElementById('senhaAcessoInput').focus();
+          return;
+        }
+        
+        document.getElementById('modalSenhaAcesso').classList.add('hidden');
+        alternarAba(abaSolicitada);
+        abaSolicitada = null;
+      }
+
+      // Funções de persistência de dados
+      function carregarDados() {
+        const dadosFuncionarios = localStorage.getItem('funcionarios');
+        const dadosHoras = localStorage.getItem('registrosHoras');
+        
+        if (dadosFuncionarios) {
+          funcionarios = JSON.parse(dadosFuncionarios);
+        } else {
+          // Dados iniciais de exemplo
+          funcionarios = [
+            { id: '01', nome: 'Carlos Silva', cargo: 'Desenvolvedor' },
+            { id: '02', nome: 'Ana Souza', cargo: 'Gerente' },
+            { id: '03', nome: 'Pedro Oliveira', cargo: 'Designer' }
+          ];
+          salvarDados('funcionarios');
+        }
+        
+        if (dadosHoras) {
+          registrosHoras = JSON.parse(dadosHoras);
+        } else {
+          // Dados iniciais de exemplo
+          registrosHoras = [
+            { idFuncionario: '01', data: moment().subtract(2, 'days').format('DD/MM/YYYY'), horas: 2.5, nome: 'Carlos Silva', observacoes: 'Projeto urgente', status: 'Confirmado', dataConfirmacao: moment().subtract(2, 'days').format('DD/MM/YYYY HH:mm') },
+            { idFuncionario: '02', data: moment().subtract(1, 'days').format('DD/MM/YYYY'), horas: 1, nome: 'Ana Souza', observacoes: 'Reunião com cliente', status: 'Confirmado', dataConfirmacao: moment().subtract(1, 'days').format('DD/MM/YYYY HH:mm') },
+            { idFuncionario: '01', data: moment().format('DD/MM/YYYY'), horas: 3, nome: 'Carlos Silva', observacoes: 'Correção de bugs', status: 'Pendente' }
+          ];
+          salvarDados('registrosHoras');
+        }
+      }
+
+      function salvarDados(tipo) {
+        try {
+          if (tipo === 'funcionarios' || tipo === 'all') {
+            localStorage.setItem('funcionarios', JSON.stringify(funcionarios));
+          }
+          if (tipo === 'registrosHoras' || tipo === 'all') {
+            localStorage.setItem('registrosHoras', JSON.stringify(registrosHoras));
+          }
+        } catch (e) {
+          console.error('Erro ao salvar dados:', e);
+          alert('Ocorreu um erro ao salvar os dados. Tente novamente.');
+        }
+      }
+
+      // Funções de Navegação
+      function alternarAba(aba) {
+        abaAtiva = aba;
+        
+        // Esconder todas as abas primeiro
+        document.getElementById('conteudoCadastro').classList.add('hidden');
+        document.getElementById('conteudoHoras').classList.add('hidden');
+        document.getElementById('conteudoHistorico').classList.add('hidden');
+        document.getElementById('addButtonContainer').classList.add('hidden');
+        
+        // Resetar estilos das abas
+        document.getElementById('abaCadastro').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        document.getElementById('abaCadastro').classList.add('text-gray-500');
+        document.getElementById('abaHoras').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        document.getElementById('abaHoras').classList.add('text-gray-500');
+        document.getElementById('abaHistorico').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        document.getElementById('abaHistorico').classList.add('text-gray-500');
+        
+        // Mostrar a aba correta
+        if (aba === 'cadastro') {
+          document.getElementById('conteudoCadastro').classList.remove('hidden');
+          document.getElementById('addButtonContainer').classList.remove('hidden');
+          document.getElementById('abaCadastro').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+          document.getElementById('abaCadastro').classList.remove('text-gray-500');
+          document.getElementById('tituloPagina').textContent = 'Cadastro';
+        } else if (aba === 'horas') {
+          document.getElementById('conteudoHoras').classList.remove('hidden');
+          document.getElementById('abaHoras').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+          document.getElementById('abaHoras').classList.remove('text-gray-500');
+          document.getElementById('tituloPagina').textContent = 'Registrar Horas';
+        } else if (aba === 'historico') {
+          document.getElementById('conteudoHistorico').classList.remove('hidden');
+          document.getElementById('abaHistorico').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+          document.getElementById('abaHistorico').classList.remove('text-gray-500');
+          document.getElementById('tituloPagina').textContent = 'Histórico';
+          atualizarFiltroFuncionarios();
+          atualizarHistorico();
+        }
+        
+        // Scroll para o topo
+        window.scrollTo(0, 0);
+      }
+
+      // Funções CRUD Funcionários
+      function mostrarFormulario() {
+        document.getElementById('formContainer').classList.remove('hidden');
+        document.getElementById('addFuncionarioBtn').classList.add('hidden');
+        modoEdicao = false;
+        funcionarioEditando = null;
+        limparFormulario();
+        
+        // Foca no primeiro campo
+        setTimeout(() => {
+          document.getElementById('nomeInput').focus();
+        }, 100);
+      }
+
+      function esconderFormulario() {
+        document.getElementById('formContainer').classList.add('hidden');
+        document.getElementById('addFuncionarioBtn').classList.remove('hidden');
+      }
+
+      function limparFormulario() {
+        document.getElementById('nomeInput').value = '';
+        document.getElementById('cargoInput').value = '';
+        document.getElementById('idInput').value = '';
+      }
+
+      function salvarFuncionario() {
+        const nome = document.getElementById('nomeInput').value.trim();
+        const cargo = document.getElementById('cargoInput').value.trim();
+        let id = document.getElementById('idInput').value.trim();
+
+        // Validação do ID (2 dígitos)
+        if (!/^\d{2}$/.test(id)) {
+          alert('O ID deve conter exatamente 2 dígitos numéricos!');
+          return;
+        }
+
+        if (!nome || !cargo) {
+          alert('Por favor, preencha pelo menos nome e cargo!');
+          return;
+        }
+
+        // Verifica se o ID já existe (exceto em modo edição)
+        if (!modoEdicao && funcionarios.some(f => f.id === id)) {
+          alert('Já existe um funcionário com este ID!');
+          return;
+        }
+
+        if (modoEdicao && funcionarioEditando) {
+          // Atualizar funcionário existente
+          funcionarioEditando.nome = nome;
+          funcionarioEditando.cargo = cargo;
+          funcionarioEditando.id = id;
+          
+          // Atualizar também nos registros de horas
+          registrosHoras.forEach(registro => {
+            if (registro.idFuncionario === funcionarioEditando.id) {
+              registro.nome = nome;
+            }
+          });
+        } else {
+          // Adicionar novo funcionário
+          funcionarios.push({ id, nome, cargo });
+        }
+
+        atualizarListaFuncionarios();
+        atualizarFiltroFuncionarios();
+        esconderFormulario();
+        salvarDados('all');
+      }
+
+      function editarFuncionario(id) {
+        const funcionario = funcionarios.find(f => f.id === id);
+        if (funcionario) {
+          mostrarFormulario();
+          modoEdicao = true;
+          funcionarioEditando = funcionario;
+          
+          document.getElementById('nomeInput').value = funcionario.nome;
+          document.getElementById('cargoInput').value = funcionario.cargo;
+          document.getElementById('idInput').value = funcionario.id;
+        }
+      }
+
+      function removerFuncionario(id) {
+        if (confirm('Tem certeza que deseja remover este funcionário? Todos os registros de horas extras também serão removidos.')) {
+          funcionarios = funcionarios.filter(f => f.id !== id);
+          registrosHoras = registrosHoras.filter(r => r.idFuncionario !== id);
+          atualizarListaFuncionarios();
+          atualizarFiltroFuncionarios();
+          salvarDados('all');
+        }
+      }
+
+      // Funções de Horas Extras
+      function registrarHorasExtras() {
+        const idFuncionario = document.getElementById('idFuncionarioInput').value.trim();
+        const data = document.getElementById('dataInput').value;
+        const horas = parseFloat(document.getElementById('horasExtrasInput').value.replace(',', '.'));
+        const observacoes = document.getElementById('observacoesInput').value.trim();
+        
+        // Validação do ID (2 dígitos)
+        if (!/^\d{2}$/.test(idFuncionario)) {
+          alert('O ID do funcionário deve conter exatamente 2 dígitos numéricos!');
+          return;
+        }
+        
+        // Validação dos campos obrigatórios
+        if (!data || isNaN(horas) || horas <= 0) {
+          alert('Por favor, preencha todos os campos com valores válidos!');
+          return;
+        }
+        
+        // Validação das observações
+        if (!observacoes) {
+          alert('Por favor, insira uma observação descrevendo a razão das horas extras!');
+          document.getElementById('observacoesInput').focus();
+          return;
+        }
+        
+        // Verifica se o funcionário existe
+        const funcionario = funcionarios.find(f => f.id === idFuncionario);
+        if (!funcionario) {
+          alert('Funcionário não encontrado! Verifique o ID.');
+          return;
+        }
+        
+        // Formata a data para o padrão brasileiro
+        const dataFormatada = moment(data).format('DD/MM/YYYY');
+        
+        // Adiciona o registro com status Pendente
+        registrosHoras.push({
+          idFuncionario,
+          data: dataFormatada,
+          horas,
+          nome: funcionario.nome,
+          observacoes,
+          status: 'Pendente'
+        });
+        
+        // Limpa o formulário
+        document.getElementById('idFuncionarioInput').value = '';
+        document.getElementById('horasExtrasInput').value = '';
+        document.getElementById('observacoesInput').value = '';
+        
+        // Atualiza os dados
+        salvarDados('registrosHoras');
+        
+        alert(`Horas extras registradas para ${funcionario.nome}! Aguardando confirmação.`);
+        
+        // Se estiver na aba de histórico, atualiza
+        if (abaAtiva === 'historico') {
+          atualizarHistorico();
+        }
+      }
+
+      function abrirModalConfirmacao(index) {
+        registroParaConfirmar = index;
+        document.getElementById('modalConfirmacao').classList.remove('hidden');
+        document.getElementById('senhaConfirmacaoInput').value = '';
+        document.getElementById('senhaConfirmacaoInput').focus();
+      }
+
+      function cancelarConfirmacao() {
+        document.getElementById('modalConfirmacao').classList.add('hidden');
+        registroParaConfirmar = null;
+      }
+
+      function confirmarHoras() {
+        const senha = document.getElementById('senhaConfirmacaoInput').value;
+        
+        if (senha !== SENHA_SUPERIOR) {
+          alert('Senha incorreta! Confirmação não autorizada.');
+          document.getElementById('senhaConfirmacaoInput').focus();
+          return;
+        }
+        
+        // Atualiza o registro
+        registrosHoras[registroParaConfirmar].status = 'Confirmado';
+        registrosHoras[registroParaConfirmar].dataConfirmacao = moment().format('DD/MM/YYYY HH:mm');
+        
+        salvarDados('registrosHoras');
+        document.getElementById('modalConfirmacao').classList.add('hidden');
+        atualizarHistorico();
+        
+        alert('Horas extras confirmadas com sucesso!');
+        registroParaConfirmar = null;
+      }
+
+      function abrirModalEdicaoHoras(index) {
+        registroEditandoIndex = index;
+        document.getElementById('modalEdicaoHoras').classList.remove('hidden');
+        document.getElementById('novasHorasInput').value = registrosHoras[index].horas;
+        document.getElementById('novaObservacaoInput').value = registrosHoras[index].observacoes || '';
+        document.getElementById('senhaEdicaoInput').value = '';
+        document.getElementById('senhaEdicaoInput').focus();
+      }
+
+      function fecharModalEdicao() {
+        document.getElementById('modalEdicaoHoras').classList.add('hidden');
+      }
+
+      function confirmarEdicaoHoras() {
+        const senha = document.getElementById('senhaEdicaoInput').value;
+        const novasHoras = parseFloat(document.getElementById('novasHorasInput').value.replace(',', '.'));
+        const novaObservacao = document.getElementById('novaObservacaoInput').value.trim();
+        
+        if (senha !== SENHA_EDICAO) {
+          alert('Senha incorreta!');
+          return;
+        }
+        
+        if (isNaN(novasHoras) || novasHoras <= 0) {
+          alert('Por favor, insira um valor válido para as horas!');
+          return;
+        }
+        
+        if (!novaObservacao) {
+          alert('Por favor, insira uma observação!');
+          return;
+        }
+        
+        registrosHoras[registroEditandoIndex].horas = novasHoras;
+        registrosHoras[registroEditandoIndex].observacoes = novaObservacao;
+        salvarDados('registrosHoras');
+        fecharModalEdicao();
+        atualizarHistorico();
+        
+        alert('Horas atualizadas com sucesso!');
+      }
+
+      function removerRegistroHoras(index) {
+        if (confirm('Tem certeza que deseja remover este registro de horas extras?')) {
+          registrosHoras.splice(index, 1);
+          salvarDados('registrosHoras');
+          atualizarHistorico();
+        }
+      }
+
+      // Funções para o histórico
+      function atualizarFiltroFuncionarios() {
+        const select = document.getElementById('funcionarioFilter');
+        select.innerHTML = '<option value="">Todos</option>';
+        
+        funcionarios.forEach(funcionario => {
+          const option = document.createElement('option');
+          option.value = funcionario.id;
+          option.textContent = `${funcionario.nome} (ID: ${funcionario.id})`;
+          select.appendChild(option);
+        });
+      }
+
+      function aplicarFiltroHistorico() {
+        atualizarHistorico();
+      }
+
+      function atualizarHistorico() {
+        const dataInicial = document.getElementById('dataInicialFilter').value;
+        const dataFinal = document.getElementById('dataFinalFilter').value;
+        const idFuncionario = document.getElementById('funcionarioFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        
+        let registrosFiltrados = [...registrosHoras];
+        
+        // Aplicar filtro por datas se existirem
+        if (dataInicial || dataFinal) {
+          registrosFiltrados = registrosHoras.filter(registro => {
+            const dataRegistro = moment(registro.data, 'DD/MM/YYYY');
+            const filtroInicio = dataInicial ? moment(dataInicial) : moment(0);
+            const filtroFim = dataFinal ? moment(dataFinal) : moment().add(100, 'years');
+            
+            return dataRegistro.isBetween(filtroInicio, filtroFim, null, '[]');
+          });
+        }
+        
+        // Aplicar filtro por funcionário se existir
+        if (idFuncionario) {
+          registrosFiltrados = registrosFiltrados.filter(r => r.idFuncionario === idFuncionario);
+        }
+        
+        // Aplicar filtro por status se existir
+        if (status) {
+          registrosFiltrados = registrosFiltrados.filter(r => r.status === status);
+        }
+        
+        // Atualizar interface
+        atualizarListaHistorico(registrosFiltrados);
+        atualizarResumoHistorico(registrosFiltrados, dataInicial, dataFinal, idFuncionario);
+      }
+
+      function atualizarListaHistorico(registros) {
+        const lista = document.getElementById('listaHistorico');
+        lista.innerHTML = '';
+        
+        if (registros.length === 0) {
+          document.getElementById('semRegistrosHistorico').classList.remove('hidden');
+          return;
+        }
+        
+        document.getElementById('semRegistrosHistorico').classList.add('hidden');
+        
+        // Ordenar por data (mais recente primeiro)
+        const registrosOrdenados = registros.sort((a, b) => {
+          const dateA = moment(a.data, 'DD/MM/YYYY').toDate();
+          const dateB = moment(b.data, 'DD/MM/YYYY').toDate();
+          return dateB - dateA;
+        });
+        
+        registrosOrdenados.forEach((registro, index) => {
+          const funcionario = funcionarios.find(f => f.id === registro.idFuncionario) || { nome: 'Funcionário não encontrado' };
+          
+          const registroElement = document.createElement('div');
+          registroElement.className = 'bg-white p-3 rounded-lg border border-gray-200';
+          
+          let botoes = '';
+          if (registro.status === 'Pendente') {
+            botoes = `
+              <button onclick="abrirModalConfirmacao(${registrosHoras.indexOf(registro)})" 
+                class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs active:bg-green-700">
+                Confirmar
+              </button>
+            `;
+          } else {
+            botoes = `
+              <span class="text-xs text-gray-500">
+                Confirmado em ${registro.dataConfirmacao}
+              </span>
+            `;
+          }
+          
+          registroElement.innerHTML = `
+            <div class="flex justify-between items-start">
+              <div class="flex-1 min-w-0">
+                <p class="font-medium truncate">${funcionario.nome}</p>
+                <p class="text-xs text-gray-500">${registro.data} - 
+                  <span class="${registro.status === 'Pendente' ? 'status-pendente' : 'status-confirmado'}">
+                    ${registro.status}
+                  </span>
+                </p>
+                ${registro.observacoes ? `<p class="text-xs mt-1 truncate">${registro.observacoes}</p>` : ''}
+              </div>
+              <div class="flex flex-col items-end ml-2">
+                <p class="font-bold text-blue-600 whitespace-nowrap">${registro.horas.toFixed(1).replace('.', ',')}h</p>
+                ${botoes}
+              </div>
+            </div>
+          `;
+          lista.appendChild(registroElement);
+        });
+      }
+
+      function atualizarResumoHistorico(registros, dataInicial, dataFinal, idFuncionario) {
+        const totalHoras = registros
+          .filter(r => r.status === 'Confirmado')
+          .reduce((sum, r) => sum + r.horas, 0);
+          
+        document.getElementById('totalHorasHistorico').textContent = totalHoras.toFixed(1).replace('.', ',');
+        
+        let periodoTexto = 'Todos os registros';
+        if (dataInicial || dataFinal) {
+          periodoTexto = `De ${dataInicial ? moment(dataInicial).format('DD/MM/YYYY') : 'início'} até ${dataFinal ? moment(dataFinal).format('DD/MM/YYYY') : 'hoje'}`;
+        }
+        
+        if (idFuncionario) {
+          const funcionario = funcionarios.find(f => f.id === idFuncionario);
+          periodoTexto += ` | ${funcionario.nome}`;
+        }
+        
+        document.getElementById('periodoSelecionado').textContent = periodoTexto;
+      }
+
+      // Atualização da UI
+      function atualizarListaFuncionarios() {
+        const lista = document.getElementById('listaFuncionarios');
+        lista.innerHTML = '';
+        
+        if (funcionarios.length === 0) {
+          lista.innerHTML = '<p class="text-center py-4 text-gray-500">Nenhum funcionário cadastrado</p>';
+          document.getElementById('totalFuncionarios').textContent = '0 cadastrados';
+          return;
+        }
+        
+        funcionarios.forEach(funcionario => {
+          const funcionarioElement = document.createElement('div');
+          funcionarioElement.className = 'bg-white p-3 rounded-lg border border-gray-200';
+          funcionarioElement.innerHTML = `
+            <div class="flex justify-between items-start">
+              <div class="flex-1 min-w-0">
+                <p class="font-medium truncate">${funcionario.nome}</p>
+                <p class="text-xs text-gray-500 truncate">${funcionario.cargo}</p>
+                <p class="text-xs text-gray-400 mt-1">ID: ${funcionario.id}</p>
+              </div>
+              <div class="flex gap-2 ml-2">
+                <button onclick="editarFuncionario('${funcionario.id}')" class="text-blue-600 text-sm active:text-blue-700">
+                  Editar
+                </button>
+                <button onclick="removerFuncionario('${funcionario.id}')" class="text-red-600 text-sm active:text-red-700">
+                  Remover
+                </button>
+              </div>
+            </div>
+          `;
+          lista.appendChild(funcionarioElement);
+        });
+        
+        document.getElementById('totalFuncionarios').textContent = `${funcionarios.length} ${funcionarios.length === 1 ? 'cadastrado' : 'cadastrados'}`;
+      }
+
+      // Funções de Exportação
+      function exportarParaPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Título
+        doc.setFontSize(16);
+        doc.text('Relatório de Funcionários', 105, 15, { align: 'center' });
+        
+        // Data
+        doc.setFontSize(10);
+        doc.text(`Gerado em: ${moment().format('DD/MM/YYYY HH:mm')}`, 105, 22, { align: 'center' });
+        
+        // Cabeçalho da tabela
+        doc.setFontSize(12);
+        doc.setDrawColor(200);
+        doc.setFillColor(230, 230, 230);
+        doc.rect(10, 30, 190, 10, 'F');
+        doc.text('ID', 15, 37);
+        doc.text('Nome', 50, 37);
+        doc.text('Cargo', 140, 37);
+        
+        // Conteúdo da tabela
+        let y = 45;
+        doc.setFontSize(10);
+        
+        funcionarios.forEach(func => {
+          doc.text(func.id, 15, y);
+          doc.text(func.nome, 50, y);
+          doc.text(func.cargo, 140, y);
+          y += 7;
+          
+          // Quebra de página se necessário
+          if (y > 280) {
+            doc.addPage();
+            y = 20;
+          }
+        });
+        
+        // Total
+        doc.setFontSize(12);
+        doc.text(`Total: ${funcionarios.length} funcionário${funcionarios.length !== 1 ? 's' : ''}`, 105, y+10, { align: 'center' });
+        
+        // Abre o PDF em uma nova aba (funciona na maioria dos navegadores mobile)
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, '_blank');
+      }
+
+      function exportarParaExcel() {
+        try {
+          // Preparar dados
+          const dados = [
+            ['ID', 'Nome', 'Cargo'],
+            ...funcionarios.map(f => [f.id, f.nome, f.cargo])
+          ];
+          
+          // Criar planilha
+          const ws = XLSX.utils.aoa_to_sheet(dados);
+          ws['!cols'] = [
+            { wch: 10 },
+            { wch: 30 },
+            { wch: 25 }
+          ];
+          
+          // Criar workbook
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Funcionários");
+          
+          // Gerar arquivo
+          XLSX.writeFile(wb, "funcionarios.xlsx");
+        } catch (e) {
+          console.error('Erro ao exportar para Excel:', e);
+          alert('Não foi possível exportar para Excel. Tente novamente.');
+        }
+      }
+    </script>
+</body>
+</html>
