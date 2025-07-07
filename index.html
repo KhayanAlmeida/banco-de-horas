@@ -568,6 +568,7 @@
         }
 
         
+
 async function salvarFuncionario() {
     const nome = document.getElementById('nomeInput').value.trim();
     const cargo = document.getElementById('cargoInput').value.trim();
@@ -576,6 +577,36 @@ async function salvarFuncionario() {
         alert('Por favor, preencha pelo menos nome e cargo!');
         return;
     }
+
+    try {
+        // Garante que a lista de funcionários esteja atualizada
+        const querySnapshotFunc = await getDocs(collection(db, "funcionarios"));
+        const funcionariosExistentes = querySnapshotFunc.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const idsUsados = funcionariosExistentes.map(f => f.id);
+
+        let idGerado = "01";
+        for (let i = 1; i <= 99; i++) {
+            const candidato = i.toString().padStart(2, '0');
+            if (!idsUsados.includes(candidato)) {
+                idGerado = candidato;
+                break;
+            }
+        }
+
+        if (modoEdicao && funcionarioEditando) {
+            const funcRef = doc(db, "funcionarios", funcionarioEditando.id);
+            await updateDoc(funcRef, { nome, cargo });
+        } else {
+            await setDoc(doc(db, "funcionarios", idGerado), { nome, cargo });
+        }
+
+        await carregarDados();
+        esconderFormulario();
+    } catch (e) {
+        console.error("Erro ao salvar funcionário:", e);
+        alert("Ocorreu um erro ao salvar. Tente novamente.");
+    }
+}
 
     try {
         if (modoEdicao && funcionarioEditando) {
