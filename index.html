@@ -176,7 +176,7 @@
                             placeholder="Digite o cargo"
                         >
                     </div>
-                    <div>
+                    <div class="hidden"> <!-- Campo de ID oculto -->
                         <label class="block text-sm font-medium text-gray-700 mb-1">ID (2 dígitos)</label>
                         <input
                             id="idInput"
@@ -567,16 +567,42 @@
             await carregarDados();
         }
 
-        async function salvarFuncionario() {
-            const nome = document.getElementById('nomeInput').value.trim();
-            const cargo = document.getElementById('cargoInput').value.trim();
-            let id = document.getElementById('idInput').value.trim();
+        
+async function salvarFuncionario() {
+    const nome = document.getElementById('nomeInput').value.trim();
+    const cargo = document.getElementById('cargoInput').value.trim();
 
-            // Validações
-            if (!/^\d{2}$/.test(id)) {
-                alert('O ID deve conter exatamente 2 dígitos numéricos (ex: 01, 02, etc.)!');
-                return;
+    if (!nome || !cargo) {
+        alert('Por favor, preencha pelo menos nome e cargo!');
+        return;
+    }
+
+    try {
+        if (modoEdicao && funcionarioEditando) {
+            const funcRef = doc(db, "funcionarios", funcionarioEditando.id);
+            await updateDoc(funcRef, { nome, cargo });
+        } else {
+            // Gerar ID automático (2 dígitos)
+            let idGerado = "01";
+            const usados = funcionarios.map(f => parseInt(f.id));
+            for (let i = 1; i <= 99; i++) {
+                const candidato = i.toString().padStart(2, '0');
+                if (!usados.includes(i)) {
+                    idGerado = candidato;
+                    break;
+                }
             }
+
+            await setDoc(doc(db, "funcionarios", idGerado), { nome, cargo });
+        }
+
+        await carregarDados();
+        esconderFormulario();
+    } catch (e) {
+        console.error("Erro ao salvar funcionário:", e);
+        alert("Ocorreu um erro ao salvar. Tente novamente.");
+    }
+}
 
             if (!nome || !cargo) {
                 alert('Por favor, preencha pelo menos nome e cargo!');
