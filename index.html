@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Banco de Horas - Firebase</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+    h1 { color: #2c3e50; }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 300px; }
+    .container { background: #fff; padding: 20px; border-radius: 8px; max-width: 400px; margin: auto; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    ul { list-style: none; padding: 0; }
+    li { background: #ecf0f1; padding: 10px; margin-bottom: 5px; border-radius: 4px; }
+  </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -20,26 +28,45 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const colRef = collection(db, "funcionarios");
 
-    async function salvarFuncionario(nome, cargo, id) {
-      await addDoc(collection(db, "funcionarios"), { nome, cargo, id });
-      console.log("Funcionário salvo!");
+    async function salvarFuncionario() {
+      const nome = document.getElementById("nome").value;
+      const cargo = document.getElementById("cargo").value;
+      const id = document.getElementById("id").value;
+
+      if (!nome || !cargo || !id) return alert("Preencha todos os campos");
+
+      await addDoc(colRef, { nome, cargo, id });
+      alert("Funcionário salvo!");
+      listarFuncionarios();
     }
 
     async function listarFuncionarios() {
-      const querySnapshot = await getDocs(collection(db, "funcionarios"));
-      querySnapshot.forEach((doc) => {
-        console.log(doc.id, " => ", doc.data());
+      const lista = document.getElementById("lista");
+      lista.innerHTML = "";
+      const snapshot = await getDocs(colRef);
+      snapshot.forEach(doc => {
+        const f = doc.data();
+        const item = document.createElement("li");
+        item.textContent = `${f.nome} - ${f.cargo} (ID: ${f.id})`;
+        lista.appendChild(item);
       });
     }
 
-    // Exemplo de uso
-    salvarFuncionario("Exemplo", "Teste", "99");
-    listarFuncionarios();
+    window.onload = listarFuncionarios;
+    window.salvarFuncionario = salvarFuncionario;
   </script>
 </head>
 <body>
-  <h1>Banco de Horas com Firebase</h1>
-  <p>Abra o console do navegador (F12) para ver os dados sendo enviados e lidos do Firebase Firestore.</p>
+  <div class="container">
+    <h1>Cadastro de Funcionário</h1>
+    <input id="nome" placeholder="Nome completo" />
+    <input id="cargo" placeholder="Cargo" />
+    <input id="id" placeholder="ID (ex: 01)" />
+    <button onclick="salvarFuncionario()">Salvar Funcionário</button>
+    <h2>Funcionários Cadastrados</h2>
+    <ul id="lista"></ul>
+  </div>
 </body>
 </html>
