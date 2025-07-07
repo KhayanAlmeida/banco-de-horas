@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Banco de Horas com Firebase</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Banco de Horas - Firebase</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -20,19 +21,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Exemplo: salvar funcionário
     async function salvarFuncionario(nome, cargo, id) {
-      try {
-        await addDoc(collection(db, "funcionarios"), {
-          nome, cargo, id
-        });
-        console.log("Funcionário salvo com sucesso");
-      } catch (e) {
-        console.error("Erro ao salvar:", e);
-      }
+      await addDoc(collection(db, "funcionarios"), { nome, cargo, id });
+      console.log("Funcionário salvo!");
     }
 
-    // Exemplo: listar funcionários
     async function listarFuncionarios() {
       const querySnapshot = await getDocs(collection(db, "funcionarios"));
       querySnapshot.forEach((doc) => {
@@ -40,13 +33,13 @@
       });
     }
 
-    // Chamar exemplos
-    salvarFuncionario("Carlos Silva", "Desenvolvedor", "01");
+    // Exemplo de uso
+    salvarFuncionario("Exemplo", "Teste", "99");
     listarFuncionarios();
   </script>
 </head>
 <body>
   <h1>Banco de Horas com Firebase</h1>
-  <p>Abra o console do navegador para ver as ações com Firestore.</p>
+  <p>Abra o console do navegador (F12) para ver os dados sendo enviados e lidos do Firebase Firestore.</p>
 </body>
 </html>
