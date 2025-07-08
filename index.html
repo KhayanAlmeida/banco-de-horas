@@ -65,6 +65,15 @@
             background-color: #f3f4f6 !important;
             cursor: default;
         }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+        .input-error {
+            border: 1px solid #ef4444 !important;
+        }
         @media (max-width: 640px) {
             .grid-cols-2 {
                 grid-template-columns: 1fr 1fr !important;
@@ -106,7 +115,9 @@
                         maxlength="2"
                         pattern="\d{2}"
                         inputmode="numeric"
+                        required
                     >
+                    <span class="error-message" id="idFuncionarioError"></span>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Funcionário</label>
@@ -127,6 +138,7 @@
                         placeholder="Selecione a data"
                         required
                     >
+                    <span class="error-message" id="dataError"></span>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Horas Extras</label>
@@ -135,7 +147,9 @@
                         class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Ex: 2.5"
                         inputmode="decimal"
+                        required
                     >
+                    <span class="error-message" id="horasError"></span>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
@@ -145,6 +159,7 @@
                         placeholder="Descreva a razão das horas extras (obrigatório)"
                         required
                     ></textarea>
+                    <span class="error-message" id="observacoesError"></span>
                 </div>
                 <button
                     id="registrarHorasBtn"
@@ -166,7 +181,10 @@
                             id="nomeInput"
                             class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Digite o nome"
+                            required
+                            minlength="3"
                         >
+                        <span class="error-message" id="nomeError"></span>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
@@ -174,9 +192,12 @@
                             id="cargoInput"
                             class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Digite o cargo"
+                            required
+                            minlength="2"
                         >
+                        <span class="error-message" id="cargoError"></span>
                     </div>
-                    <div class="hidden"> <!-- Campo de ID oculto -->
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">ID (2 dígitos)</label>
                         <input
                             id="idInput"
@@ -185,7 +206,9 @@
                             maxlength="2"
                             pattern="\d{2}"
                             inputmode="numeric"
+                            required
                         >
+                        <span class="error-message" id="idError"></span>
                     </div>
                 </div>
                 <div class="flex gap-3 mt-4">
@@ -250,14 +273,12 @@
                                 type="date" 
                                 class="w-full p-2 rounded-lg bg-white border-none"
                                 placeholder="Data inicial"
-                                required
                             >
                             <input 
                                 id="dataFinalFilter" 
                                 type="date" 
                                 class="w-full p-2 rounded-lg bg-white border-none"
                                 placeholder="Data final"
-                                required
                             >
                         </div>
                     </div>
@@ -338,7 +359,9 @@
                         id="senhaEdicaoInput"
                         placeholder="Digite a senha"
                         class="w-full p-2 border rounded-lg senha-input"
+                        required
                     >
+                    <span class="error-message" id="senhaEdicaoError"></span>
                 </div>
                 
                 <div>
@@ -350,7 +373,9 @@
                         placeholder="Horas extras"
                         class="w-full p-2 border rounded-lg"
                         inputmode="decimal"
+                        required
                     >
+                    <span class="error-message" id="novasHorasError"></span>
                 </div>
                 
                 <div>
@@ -359,7 +384,9 @@
                         id="novaObservacaoInput"
                         class="w-full p-2 border rounded-lg min-h-[80px]"
                         placeholder="Observações"
+                        required
                     ></textarea>
+                    <span class="error-message" id="novaObservacaoError"></span>
                 </div>
                 
                 <div class="flex justify-end gap-2">
@@ -391,7 +418,9 @@
                     id="senhaConfirmacaoInput"
                     placeholder="Digite a senha"
                     class="w-full p-2 border rounded-lg senha-input"
+                    required
                 >
+                <span class="error-message" id="senhaConfirmacaoError"></span>
                 <div class="flex justify-end gap-2">
                     <button
                         id="cancelarConfirmacaoBtn"
@@ -421,7 +450,9 @@
                     id="senhaAcessoInput"
                     placeholder="Digite a senha"
                     class="w-full p-2 border rounded-lg senha-input"
+                    required
                 >
+                <span class="error-message" id="senhaAcessoError"></span>
                 <div class="flex justify-end gap-2">
                     <button
                         id="cancelarAcessoBtn"
@@ -465,8 +496,8 @@
   projectId: "banco-de-horas-4d170",
   storageBucket: "banco-de-horas-4d170.firebasestorage.app",
   messagingSenderId: "746132039738",
-  appId: "1:746132039738:web:0df10e223c9bea77392d03",
-  measurementId: "G-12LSMBQV10"
+  appId: "1:746132039738:web:615c0f16094524a5392d03",
+  measurementId: "G-1YK2TV26CK"
 };
 
         // Initialize Firebase
@@ -509,21 +540,24 @@
                 }
             } catch (e) {
                 console.error("Erro ao carregar dados:", e);
-                alert("Ocorreu um erro ao carregar os dados. Tente recarregar a página.");
+                mostrarErroGeral("Ocorreu um erro ao carregar os dados. Tente recarregar a página.");
             }
         }
 
         async function criarDadosIniciais() {
             const dadosIniciais = [
-                { nome: 'Carlos Silva', cargo: 'Desenvolvedor' },
-                { nome: 'Ana Souza', cargo: 'Gerente' },
-                { nome: 'Pedro Oliveira', cargo: 'Designer' }
+                { nome: 'Carlos Silva', cargo: 'Desenvolvedor', id: '01' },
+                { nome: 'Ana Souza', cargo: 'Gerente', id: '02' },
+                { nome: 'Pedro Oliveira', cargo: 'Designer', id: '03' }
             ];
             
             // Adiciona funcionários com IDs específicos (01, 02, 03)
-            for (let i = 0; i < dadosIniciais.length; i++) {
-                const id = (i + 1).toString().padStart(2, '0');
-                await setDoc(doc(db, "funcionarios", id), dadosIniciais[i]);
+            for (const func of dadosIniciais) {
+                await setDoc(doc(db, "funcionarios", func.id), {
+                    nome: func.nome,
+                    cargo: func.cargo,
+                    id: func.id
+                });
             }
             
             const hoje = moment().format('DD/MM/YYYY');
@@ -567,113 +601,91 @@
             await carregarDados();
         }
 
-        
+        async function salvarFuncionario() {
+            // Limpa erros anteriores
+            limparErros();
+            
+            const nome = document.getElementById('nomeInput').value.trim();
+            const cargo = document.getElementById('cargoInput').value.trim();
+            const id = document.getElementById('idInput').value.trim();
 
-async function salvarFuncionario() {
-    const nome = document.getElementById('nomeInput').value.trim();
-    const cargo = document.getElementById('cargoInput').value.trim();
-
-    if (!nome || !cargo) {
-        alert('Por favor, preencha pelo menos nome e cargo!');
-        return;
-    }
-
-    try {
-        // Garante que a lista de funcionários esteja atualizada
-        const querySnapshotFunc = await getDocs(collection(db, "funcionarios"));
-        const funcionariosExistentes = querySnapshotFunc.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const idsUsados = funcionariosExistentes.map(f => f.id);
-
-        let idGerado = "01";
-        for (let i = 1; i <= 99; i++) {
-            const candidato = i.toString().padStart(2, '0');
-            if (!idsUsados.includes(candidato)) {
-                idGerado = candidato;
-                break;
-            }
-        }
-
-        if (modoEdicao && funcionarioEditando) {
-            const funcRef = doc(db, "funcionarios", funcionarioEditando.id);
-            await updateDoc(funcRef, { nome, cargo });
-        } else {
-            await setDoc(doc(db, "funcionarios", idGerado), { nome, cargo });
-        }
-
-        await carregarDados();
-        esconderFormulario();
-    } catch (e) {
-        console.error("Erro ao salvar funcionário:", e);
-        alert("Ocorreu um erro ao salvar. Tente novamente.");
-    }
-}
-
-    try {
-        if (modoEdicao && funcionarioEditando) {
-            const funcRef = doc(db, "funcionarios", funcionarioEditando.id);
-            await updateDoc(funcRef, { nome, cargo });
-        } else {
-            // Gerar ID automático (2 dígitos)
-            let idGerado = "01";
-            const usados = funcionarios.map(f => parseInt(f.id));
-            for (let i = 1; i <= 99; i++) {
-                const candidato = i.toString().padStart(2, '0');
-                if (!usados.includes(i)) {
-                    idGerado = candidato;
-                    break;
-                }
+            // Validações
+            if (!/^\d{2}$/.test(id)) {
+                mostrarErro('idInput', 'O ID deve conter exatamente 2 dígitos numéricos (ex: 01, 02)');
+                return;
             }
 
-            await setDoc(doc(db, "funcionarios", idGerado), { nome, cargo });
-        }
+            if (!nome || nome.length < 3) {
+                mostrarErro('nomeInput', 'Por favor, insira um nome válido com pelo menos 3 caracteres');
+                return;
+            }
 
-        await carregarDados();
-        esconderFormulario();
-    } catch (e) {
-        console.error("Erro ao salvar funcionário:", e);
-        alert("Ocorreu um erro ao salvar. Tente novamente.");
-    }
-}
-
-            if (!nome || !cargo) {
-                alert('Por favor, preencha pelo menos nome e cargo!');
+            if (!cargo || cargo.length < 2) {
+                mostrarErro('cargoInput', 'Por favor, insira um cargo válido');
                 return;
             }
 
             try {
+                const funcRef = doc(db, "funcionarios", id);
+                
                 if (modoEdicao && funcionarioEditando) {
+                    // ATUALIZAÇÃO - Verifica se o ID foi alterado
+                    if (id !== funcionarioEditando.id) {
+                        mostrarErro('idInput', 'Não é possível alterar o ID de um funcionário existente');
+                        return;
+                    }
+                    
                     // Atualiza funcionário existente
-                    const funcRef = doc(db, "funcionarios", funcionarioEditando.id);
-                    await updateDoc(funcRef, { nome, cargo, id });
+                    await updateDoc(funcRef, { 
+                        nome, 
+                        cargo
+                    });
                     
                     // Atualiza registros de horas com o novo nome
-                    const registrosRef = collection(db, "registrosHoras");
-                    const q = query(registrosRef, where("idFuncionario", "==", funcionarioEditando.id));
-                    const querySnapshot = await getDocs(q);
-                    
-                    querySnapshot.forEach(async (doc) => {
-                        await updateDoc(doc.ref, { nome });
-                    });
+                    await atualizarNomeNosRegistros(id, nome);
                 } else {
-                    // Verifica se ID já existe
-                    const funcRef = doc(db, "funcionarios", id);
+                    // CRIAÇÃO - Verifica se ID já existe
                     const docSnap = await getDoc(funcRef);
                     
                     if (docSnap.exists()) {
-                        alert('Já existe um funcionário com este ID!');
+                        mostrarErro('idInput', 'Já existe um funcionário com este ID');
                         return;
                     }
                     
                     // Adiciona novo funcionário
-                    await setDoc(funcRef, { nome, cargo });
+                    await setDoc(doc(db, "funcionarios", id), { 
+                        nome, 
+                        cargo,
+                        id
+                    });
                 }
                 
                 // Atualiza a interface
                 await carregarDados();
                 esconderFormulario();
+                mostrarSucesso(`Funcionário ${modoEdicao ? 'atualizado' : 'cadastrado'} com sucesso!`);
             } catch (e) {
                 console.error("Erro ao salvar funcionário:", e);
-                alert("Ocorreu um erro ao salvar. Tente novamente.");
+                mostrarErroGeral(`Ocorreu um erro ao ${modoEdicao ? 'atualizar' : 'cadastrar'}. Tente novamente.`);
+            }
+        }
+
+        // Função auxiliar para atualizar nome nos registros
+        async function atualizarNomeNosRegistros(idFuncionario, novoNome) {
+            try {
+                const registrosRef = collection(db, "registrosHoras");
+                const q = query(registrosRef, where("idFuncionario", "==", idFuncionario));
+                const querySnapshot = await getDocs(q);
+                
+                const atualizacoes = [];
+                querySnapshot.forEach(async (doc) => {
+                    await updateDoc(doc.ref, { nome: novoNome });
+                });
+                
+                await Promise.all(atualizacoes);
+            } catch (e) {
+                console.error("Erro ao atualizar registros:", e);
+                // Não interrompe o fluxo principal, apenas loga o erro
             }
         }
 
@@ -694,14 +706,18 @@ async function salvarFuncionario() {
                     
                     // Atualiza a interface
                     await carregarDados();
+                    mostrarSucesso('Funcionário removido com sucesso!');
                 } catch (e) {
                     console.error("Erro ao remover funcionário:", e);
-                    alert("Ocorreu um erro ao remover. Tente novamente.");
+                    mostrarErroGeral("Ocorreu um erro ao remover. Tente novamente.");
                 }
             }
         }
 
         async function registrarHorasExtras() {
+            // Limpa erros anteriores
+            limparErros();
+            
             const idFuncionario = document.getElementById('idFuncionarioInput').value.trim();
             const data = document.getElementById('dataInput').value;
             const horas = parseFloat(document.getElementById('horasExtrasInput').value.replace(',', '.'));
@@ -709,19 +725,27 @@ async function salvarFuncionario() {
             
             // Validações
             if (!/^\d{2}$/.test(idFuncionario)) {
-                alert('O ID do funcionário deve conter exatamente 2 dígitos numéricos (ex: 01, 02, etc.)!');
-                document.getElementById('idFuncionarioInput').focus();
+                mostrarErro('idFuncionarioInput', 'O ID deve conter exatamente 2 dígitos numéricos (ex: 01, 02)');
                 return;
             }
             
-            if (!data || isNaN(horas) || horas <= 0) {
-                alert('Por favor, preencha todos os campos com valores válidos!\nHoras devem ser um número positivo (ex: 2.5).');
+            if (!data) {
+                mostrarErro('dataInput', 'Por favor, selecione uma data');
                 return;
             }
             
-            if (!observacoes) {
-                alert('Por favor, insira uma observação descrevendo a razão das horas extras!');
-                document.getElementById('observacoesInput').focus();
+            if (isNaN(horas)) {
+                mostrarErro('horasExtrasInput', 'Por favor, insira um valor numérico válido');
+                return;
+            }
+            
+            if (horas <= 0) {
+                mostrarErro('horasExtrasInput', 'As horas devem ser maiores que zero');
+                return;
+            }
+            
+            if (!observacoes || observacoes.length < 5) {
+                mostrarErro('observacoesInput', 'Por favor, insira uma observação válida (mínimo 5 caracteres)');
                 return;
             }
             
@@ -731,7 +755,7 @@ async function salvarFuncionario() {
                 const docSnap = await getDoc(funcRef);
                 
                 if (!docSnap.exists()) {
-                    alert('Funcionário não encontrado! Verifique o ID.');
+                    mostrarErro('idFuncionarioInput', 'Funcionário não encontrado! Verifique o ID.');
                     return;
                 }
                 
@@ -757,10 +781,10 @@ async function salvarFuncionario() {
                 // Atualiza os dados
                 await carregarDados();
                 
-                alert(`Horas extras registradas para ${funcionario.nome}!\nAguardando confirmação.`);
+                mostrarSucesso(`Horas extras registradas para ${funcionario.nome}! Aguardando confirmação.`);
             } catch (e) {
                 console.error("Erro ao registrar horas:", e);
-                alert("Ocorreu um erro ao registrar. Tente novamente.");
+                mostrarErroGeral("Ocorreu um erro ao registrar. Tente novamente.");
             }
         }
 
@@ -768,8 +792,7 @@ async function salvarFuncionario() {
             const senha = document.getElementById('senhaConfirmacaoInput').value;
             
             if (senha !== SENHA_SUPERIOR) {
-                alert('Senha incorreta! Confirmação não autorizada.');
-                document.getElementById('senhaConfirmacaoInput').focus();
+                mostrarErro('senhaConfirmacaoInput', 'Senha incorreta! Confirmação não autorizada.');
                 return;
             }
             
@@ -786,11 +809,11 @@ async function salvarFuncionario() {
                 document.getElementById('modalConfirmacao').classList.add('hidden');
                 await carregarDados();
                 
-                alert('Horas extras confirmadas com sucesso!');
+                mostrarSucesso('Horas extras confirmadas com sucesso!');
                 registroParaConfirmar = null;
             } catch (e) {
                 console.error("Erro ao confirmar horas:", e);
-                alert("Ocorreu um erro ao confirmar. Tente novamente.");
+                mostrarErroGeral("Ocorreu um erro ao confirmar. Tente novamente.");
             }
         }
 
@@ -836,11 +859,11 @@ async function salvarFuncionario() {
                 atualizarResumoHistorico(registrosHoras, dataInicial, dataFinal, idFuncionario);
             } catch (e) {
                 console.error("Erro ao filtrar histórico:", e);
-                alert("Ocorreu um erro ao filtrar. Tente novamente.");
+                mostrarErroGeral("Ocorreu um erro ao filtrar. Tente novamente.");
             }
         }
 
-        // Funções de UI (mantidas as mesmas do código original)
+        // Funções de UI
         function alternarAba(aba) {
             abaAtiva = aba;
             
@@ -889,6 +912,7 @@ async function salvarFuncionario() {
             modoEdicao = false;
             funcionarioEditando = null;
             limparFormulario();
+            limparErros();
             
             // Foca no primeiro campo
             setTimeout(() => {
@@ -899,12 +923,42 @@ async function salvarFuncionario() {
         function esconderFormulario() {
             document.getElementById('formContainer').classList.add('hidden');
             document.getElementById('addFuncionarioBtn').classList.remove('hidden');
+            limparErros();
         }
 
         function limparFormulario() {
             document.getElementById('nomeInput').value = '';
             document.getElementById('cargoInput').value = '';
             document.getElementById('idInput').value = '';
+            document.getElementById('idInput').disabled = false;
+        }
+
+        function limparErros() {
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.textContent = '';
+                el.classList.add('hidden');
+            });
+            document.querySelectorAll('.input-error').forEach(el => {
+                el.classList.remove('input-error');
+            });
+        }
+
+        function mostrarErro(campoId, mensagem) {
+            const input = document.getElementById(campoId);
+            const errorElement = document.getElementById(`${campoId}Error`);
+            
+            input.classList.add('input-error');
+            errorElement.textContent = mensagem;
+            errorElement.classList.remove('hidden');
+            input.focus();
+        }
+
+        function mostrarErroGeral(mensagem) {
+            alert(mensagem);
+        }
+
+        function mostrarSucesso(mensagem) {
+            alert(mensagem);
         }
 
         function editarFuncionario(id) {
@@ -917,6 +971,7 @@ async function salvarFuncionario() {
                 document.getElementById('nomeInput').value = funcionario.nome;
                 document.getElementById('cargoInput').value = funcionario.cargo;
                 document.getElementById('idInput').value = funcionario.id;
+                document.getElementById('idInput').disabled = true;
             }
         }
 
@@ -930,6 +985,7 @@ async function salvarFuncionario() {
         function cancelarConfirmacao() {
             document.getElementById('modalConfirmacao').classList.add('hidden');
             registroParaConfirmar = null;
+            limparErros();
         }
 
         function abrirModalEdicaoHoras(index) {
@@ -943,6 +999,7 @@ async function salvarFuncionario() {
 
         function fecharModalEdicao() {
             document.getElementById('modalEdicaoHoras').classList.add('hidden');
+            limparErros();
         }
 
         async function confirmarEdicaoHoras() {
@@ -950,18 +1007,24 @@ async function salvarFuncionario() {
             const novasHoras = parseFloat(document.getElementById('novasHorasInput').value.replace(',', '.'));
             const novaObservacao = document.getElementById('novaObservacaoInput').value.trim();
             
+            // Validações
             if (senha !== SENHA_EDICAO) {
-                alert('Senha incorreta!');
+                mostrarErro('senhaEdicaoInput', 'Senha incorreta!');
                 return;
             }
             
-            if (isNaN(novasHoras) || novasHoras <= 0) {
-                alert('Por favor, insira um valor válido para as horas (ex: 2.5)!');
+            if (isNaN(novasHoras)) {
+                mostrarErro('novasHorasInput', 'Por favor, insira um valor numérico válido');
                 return;
             }
             
-            if (!novaObservacao) {
-                alert('Por favor, insira uma observação!');
+            if (novasHoras <= 0) {
+                mostrarErro('novasHorasInput', 'As horas devem ser maiores que zero');
+                return;
+            }
+            
+            if (!novaObservacao || novaObservacao.length < 5) {
+                mostrarErro('novaObservacaoInput', 'Por favor, insira uma observação válida (mínimo 5 caracteres)');
                 return;
             }
             
@@ -977,10 +1040,10 @@ async function salvarFuncionario() {
                 fecharModalEdicao();
                 await carregarDados();
                 
-                alert('Horas atualizadas com sucesso!');
+                mostrarSucesso('Horas atualizadas com sucesso!');
             } catch (e) {
                 console.error("Erro ao atualizar horas:", e);
-                alert("Ocorreu um erro ao atualizar. Tente novamente.");
+                mostrarErroGeral("Ocorreu um erro ao atualizar. Tente novamente.");
             }
         }
 
@@ -990,10 +1053,11 @@ async function salvarFuncionario() {
                 deleteDoc(doc(db, "registrosHoras", registro.id))
                     .then(() => {
                         carregarDados();
+                        mostrarSucesso('Registro removido com sucesso!');
                     })
                     .catch(e => {
                         console.error("Erro ao remover registro:", e);
-                        alert("Ocorreu um erro ao remover. Tente novamente.");
+                        mostrarErroGeral("Ocorreu um erro ao remover. Tente novamente.");
                     });
             }
         }
@@ -1082,7 +1146,7 @@ async function salvarFuncionario() {
             
             if (idFuncionario) {
                 const funcionario = funcionarios.find(f => f.id === idFuncionario);
-                periodoTexto += ` | ${funcionario.nome}`;
+                periodoTexto += ` | ${funcionario ? funcionario.nome : 'Funcionário não encontrado'}`;
             }
             
             document.getElementById('periodoSelecionado').textContent = periodoTexto;
@@ -1196,16 +1260,21 @@ async function salvarFuncionario() {
                 XLSX.writeFile(wb, "funcionarios.xlsx");
             } catch (e) {
                 console.error('Erro ao exportar para Excel:', e);
-                alert('Não foi possível exportar para Excel. Tente novamente.');
+                mostrarErroGeral('Não foi possível exportar para Excel. Tente novamente.');
             }
         }
 
         function verificarSenhaAcesso(aba) {
+            // Se for a aba de horas, não precisa de senha
             if (aba === 'horas') {
                 alternarAba(aba);
                 return;
             }
             
+            // Se já estiver na aba solicitada, não faz nada
+            if (abaAtiva === aba) return;
+            
+            // Para cadastro e histórico, verifica senha
             abaSolicitada = aba;
             document.getElementById('modalSenhaAcesso').classList.remove('hidden');
             document.getElementById('senhaAcessoInput').value = '';
@@ -1215,14 +1284,14 @@ async function salvarFuncionario() {
         function cancelarAcesso() {
             document.getElementById('modalSenhaAcesso').classList.add('hidden');
             abaSolicitada = null;
+            limparErros();
         }
 
         function confirmarAcesso() {
             const senha = document.getElementById('senhaAcessoInput').value;
             
             if (senha !== SENHA_ACESSO) {
-                alert('Senha incorreta!');
-                document.getElementById('senhaAcessoInput').focus();
+                mostrarErro('senhaAcessoInput', 'Senha incorreta!');
                 return;
             }
             
@@ -1259,10 +1328,18 @@ async function salvarFuncionario() {
             document.getElementById('exportPdfBtn').addEventListener('click', exportarParaPDF);
             document.getElementById('exportExcelBtn').addEventListener('click', exportarParaExcel);
             
-            // Navegação entre abas
-            document.getElementById('abaCadastro').addEventListener('click', () => verificarSenhaAcesso('cadastro'));
-            document.getElementById('abaHoras').addEventListener('click', () => alternarAba('horas'));
-            document.getElementById('abaHistorico').addEventListener('click', () => verificarSenhaAcesso('historico'));
+            // Navegação entre abas - CORREÇÃO APLICADA AQUI
+            document.getElementById('abaCadastro').addEventListener('click', () => {
+                if (abaAtiva !== 'cadastro') verificarSenhaAcesso('cadastro');
+            });
+
+            document.getElementById('abaHoras').addEventListener('click', () => {
+                if (abaAtiva !== 'horas') alternarAba('horas');
+            });
+
+            document.getElementById('abaHistorico').addEventListener('click', () => {
+                if (abaAtiva !== 'historico') verificarSenhaAcesso('historico');
+            });
             
             // Modal de edição
             document.getElementById('cancelarEdicaoBtn').addEventListener('click', fecharModalEdicao);
@@ -1316,6 +1393,7 @@ async function salvarFuncionario() {
         window.editarFuncionario = editarFuncionario;
         window.removerFuncionario = removerFuncionario;
         window.removerRegistroHoras = removerRegistroHoras;
+        window.abrirModalEdicaoHoras = abrirModalEdicaoHoras;
     </script>
 </body>
 </html>
