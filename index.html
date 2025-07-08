@@ -74,6 +74,12 @@
         .input-error {
             border: 1px solid #ef4444 !important;
         }
+        .registro-desconto {
+            border-left: 4px solid #ef4444;
+        }
+        .registro-desconto .horas {
+            color: #ef4444 !important;
+        }
         @media (max-width: 640px) {
             .grid-cols-2 {
                 grid-template-columns: 1fr 1fr !important;
@@ -311,6 +317,16 @@
                     </button>
                 </div>
                 
+                <!-- Botão para descontar horas -->
+                <div class="bg-gray-100 p-3 rounded-lg mb-3">
+                    <button
+                        id="descontarHorasBtn"
+                        class="w-full py-2 bg-red-600 text-white rounded-lg font-medium active:bg-red-700 transition-colors"
+                    >
+                        Descontar Horas
+                    </button>
+                </div>
+                
                 <!-- Resumo -->
                 <div class="bg-gray-100 p-3 rounded-lg mb-3">
                     <div class="flex justify-between items-center">
@@ -439,6 +455,91 @@
         </div>
     </div>
 
+    <!-- Modal de Desconto de Horas -->
+    <div id="modalDescontoHoras" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-4 w-full max-w-sm mx-4 modal-content">
+            <h3 class="text-lg font-bold mb-3">Descontar Horas</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Funcionário</label>
+                    <select
+                        id="funcionarioDescontoSelect"
+                        class="w-full p-2 border rounded-lg"
+                        required
+                    >
+                        <option value="">Selecione o funcionário</option>
+                        <!-- Opções serão preenchidas dinamicamente -->
+                    </select>
+                    <span class="error-message" id="funcionarioDescontoError"></span>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Horas para Descontar</label>
+                    <input
+                        type="number"
+                        step="0.5"
+                        min="0.5"
+                        id="horasDescontoInput"
+                        placeholder="Ex: 2.5"
+                        class="w-full p-2 border rounded-lg"
+                        inputmode="decimal"
+                        required
+                    >
+                    <span class="error-message" id="horasDescontoError"></span>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Data</label>
+                    <input
+                        type="date"
+                        id="dataDescontoInput"
+                        class="w-full p-2 border rounded-lg"
+                        required
+                    >
+                    <span class="error-message" id="dataDescontoError"></span>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Observações</label>
+                    <textarea
+                        id="observacoesDescontoInput"
+                        class="w-full p-2 border rounded-lg min-h-[80px]"
+                        placeholder="Motivo do desconto"
+                        required
+                    ></textarea>
+                    <span class="error-message" id="observacoesDescontoError"></span>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Senha</label>
+                    <input
+                        type="password"
+                        id="senhaDescontoInput"
+                        placeholder="Digite a senha"
+                        class="w-full p-2 border rounded-lg senha-input"
+                        required
+                    >
+                    <span class="error-message" id="senhaDescontoError"></span>
+                </div>
+                
+                <div class="flex justify-end gap-2">
+                    <button
+                        id="cancelarDescontoBtn"
+                        class="px-3 py-1.5 bg-gray-200 rounded-lg text-sm active:bg-gray-300 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        id="confirmarDescontoBtn"
+                        class="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm active:bg-red-700 transition-colors"
+                    >
+                        Confirmar Desconto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Senha para Acesso -->
     <div id="modalSenhaAcesso" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-lg p-4 w-full max-w-sm mx-4 modal-content">
@@ -491,13 +592,13 @@
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
-  apiKey: "AIzaSyDizUpxR37FGDxBwSYwBaYLo8b4OOxF4kU",
-  authDomain: "banco-de-horas-4d170.firebaseapp.com",
-  projectId: "banco-de-horas-4d170",
-  storageBucket: "banco-de-horas-4d170.firebasestorage.app",
-  messagingSenderId: "746132039738",
-  appId: "1:746132039738:web:615c0f16094524a5392d03",
-  measurementId: "G-1YK2TV26CK"
+    apiKey: "AIzaSyDizUpxR37FGDxBwSYwBaYLo8b4OOxF4kU",
+    authDomain: "banco-de-horas-4d170.firebaseapp.com",
+    projectId: "banco-de-horas-4d170",
+    storageBucket: "banco-de-horas-4d170.appspot.com",
+    messagingSenderId: "746132039738",
+    appId: "1:746132039738:web:615c0f16094524a5392d03",
+    measurementId: "G-1YK2TV26CK"
 };
 
         // Initialize Firebase
@@ -670,7 +771,6 @@
             }
         }
 
-        // Função auxiliar para atualizar nome nos registros
         async function atualizarNomeNosRegistros(idFuncionario, novoNome) {
             try {
                 const registrosRef = collection(db, "registrosHoras");
@@ -1093,7 +1193,7 @@
                 const funcionario = funcionarios.find(f => f.id === registro.idFuncionario) || { nome: 'Funcionário não encontrado' };
                 
                 const registroElement = document.createElement('div');
-                registroElement.className = 'bg-white p-3 rounded-lg border border-gray-200';
+                registroElement.className = `bg-white p-3 rounded-lg border border-gray-200 ${registro.horas < 0 ? 'registro-desconto' : ''}`;
                 
                 let botoes = '';
                 if (registro.status === 'Pendente') {
@@ -1123,7 +1223,9 @@
                             ${registro.observacoes ? `<p class="text-xs mt-1 truncate">${registro.observacoes}</p>` : ''}
                         </div>
                         <div class="flex flex-col items-end ml-2">
-                            <p class="font-bold text-blue-600 whitespace-nowrap">${registro.horas.toFixed(1).replace('.', ',')}h</p>
+                            <p class="font-bold ${registro.horas < 0 ? 'text-red-600' : 'text-blue-600'} whitespace-nowrap">
+                                ${registro.horas.toFixed(1).replace('.', ',')}h
+                            </p>
                             ${botoes}
                         </div>
                     </div>
@@ -1264,6 +1366,106 @@
             }
         }
 
+        function abrirModalDesconto() {
+            document.getElementById('modalDescontoHoras').classList.remove('hidden');
+            document.getElementById('senhaDescontoInput').value = '';
+            document.getElementById('horasDescontoInput').value = '';
+            document.getElementById('observacoesDescontoInput').value = '';
+            document.getElementById('dataDescontoInput').valueAsDate = new Date();
+            limparErrosDesconto();
+            
+            // Preenche o select de funcionários
+            const select = document.getElementById('funcionarioDescontoSelect');
+            select.innerHTML = '<option value="">Selecione o funcionário</option>';
+            
+            funcionarios.forEach(funcionario => {
+                const option = document.createElement('option');
+                option.value = funcionario.id;
+                option.textContent = `${funcionario.nome} (ID: ${funcionario.id})`;
+                select.appendChild(option);
+            });
+        }
+
+        function limparErrosDesconto() {
+            const campos = [
+                'funcionarioDesconto',
+                'horasDesconto',
+                'dataDesconto',
+                'observacoesDesconto',
+                'senhaDesconto'
+            ];
+            
+            campos.forEach(campo => {
+                document.getElementById(`${campo}Error`).textContent = '';
+                document.getElementById(`${campo}Error`).classList.add('hidden');
+            });
+        }
+
+        function fecharModalDesconto() {
+            document.getElementById('modalDescontoHoras').classList.add('hidden');
+            limparErrosDesconto();
+        }
+
+        async function confirmarDescontoHoras() {
+            limparErrosDesconto();
+            
+            const idFuncionario = document.getElementById('funcionarioDescontoSelect').value;
+            const horas = parseFloat(document.getElementById('horasDescontoInput').value.replace(',', '.'));
+            const data = document.getElementById('dataDescontoInput').value;
+            const observacoes = document.getElementById('observacoesDescontoInput').value.trim();
+            const senha = document.getElementById('senhaDescontoInput').value;
+            
+            // Validações
+            if (!idFuncionario) {
+                mostrarErro('funcionarioDescontoSelect', 'Selecione um funcionário');
+                return;
+            }
+            
+            if (isNaN(horas) || horas <= 0) {
+                mostrarErro('horasDescontoInput', 'Insira um valor válido (maior que 0)');
+                return;
+            }
+            
+            if (!data) {
+                mostrarErro('dataDescontoInput', 'Selecione uma data');
+                return;
+            }
+            
+            if (!observacoes || observacoes.length < 5) {
+                mostrarErro('observacoesDescontoInput', 'Insira uma observação válida (mínimo 5 caracteres)');
+                return;
+            }
+            
+            if (senha !== SENHA_SUPERIOR) {
+                mostrarErro('senhaDescontoInput', 'Senha incorreta!');
+                return;
+            }
+            
+            try {
+                const funcionario = funcionarios.find(f => f.id === idFuncionario);
+                const dataFormatada = moment(data).format('DD/MM/YYYY');
+                
+                // Registra como horas negativas
+                await addDoc(collection(db, "registrosHoras"), {
+                    idFuncionario,
+                    data: dataFormatada,
+                    horas: -Math.abs(horas), // Garante que será negativo
+                    nome: funcionario.nome,
+                    observacoes: `DESCONTO: ${observacoes}`,
+                    status: 'Confirmado',
+                    dataConfirmacao: moment().format('DD/MM/YYYY HH:mm')
+                });
+                
+                fecharModalDesconto();
+                await carregarDados();
+                
+                mostrarSucesso(`Desconto de ${horas.toFixed(1)}h registrado para ${funcionario.nome}!`);
+            } catch (e) {
+                console.error("Erro ao registrar desconto:", e);
+                mostrarErroGeral("Ocorreu um erro ao registrar o desconto. Tente novamente.");
+            }
+        }
+
         function verificarSenhaAcesso(aba) {
             // Se for a aba de horas, não precisa de senha
             if (aba === 'horas') {
@@ -1317,6 +1519,7 @@
             const hoje = new Date();
             document.getElementById('dataInput').valueAsDate = hoje;
             document.getElementById('dataFinalFilter').valueAsDate = hoje;
+            document.getElementById('dataDescontoInput').valueAsDate = hoje;
             
             // Event Listeners
             document.getElementById('addFuncionarioBtn').addEventListener('click', mostrarFormulario);
@@ -1328,7 +1531,7 @@
             document.getElementById('exportPdfBtn').addEventListener('click', exportarParaPDF);
             document.getElementById('exportExcelBtn').addEventListener('click', exportarParaExcel);
             
-            // Navegação entre abas - CORREÇÃO APLICADA AQUI
+            // Navegação entre abas
             document.getElementById('abaCadastro').addEventListener('click', () => {
                 if (abaAtiva !== 'cadastro') verificarSenhaAcesso('cadastro');
             });
@@ -1348,6 +1551,11 @@
             // Modal de confirmação
             document.getElementById('cancelarConfirmacaoBtn').addEventListener('click', cancelarConfirmacao);
             document.getElementById('confirmarHorasBtn').addEventListener('click', confirmarHoras);
+            
+            // Modal de desconto
+            document.getElementById('descontarHorasBtn').addEventListener('click', abrirModalDesconto);
+            document.getElementById('cancelarDescontoBtn').addEventListener('click', fecharModalDesconto);
+            document.getElementById('confirmarDescontoBtn').addEventListener('click', confirmarDescontoHoras);
             
             // Modal de senha para acesso
             document.getElementById('cancelarAcessoBtn').addEventListener('click', cancelarAcesso);
@@ -1394,6 +1602,7 @@
         window.removerFuncionario = removerFuncionario;
         window.removerRegistroHoras = removerRegistroHoras;
         window.abrirModalEdicaoHoras = abrirModalEdicaoHoras;
+        window.abrirModalDesconto = abrirModalDesconto;
     </script>
 </body>
 </html>
