@@ -80,6 +80,19 @@
         .registro-desconto .horas {
             color: #ef4444 !important;
         }
+        #senhaResponsavelContainer {
+            transition: all 0.3s ease;
+        }
+        .whitespace-pre-wrap {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .logo-header {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            margin-left: 10px;
+        }
         @media (max-width: 640px) {
             .grid-cols-2 {
                 grid-template-columns: 1fr 1fr !important;
@@ -98,7 +111,8 @@
                     </svg>
                 </button>
                 <h2 class="text-gray-900 text-lg font-bold text-center px-2 flex-1" id="tituloPagina">Registrar</h2>
-                <div class="w-10"></div>
+                <!-- IMAGEM DO LOGO - ADICIONE SEU ARQUIVO NA PASTA IMAGES -->
+                <img src="images/logo.png" alt="Logo" class="logo-header">
             </div>
         </div>
 
@@ -194,14 +208,27 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
-                        <input
+                        <select
                             id="cargoInput"
                             class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Digite o cargo"
                             required
-                            minlength="2"
                         >
+                            <option value="">Selecione o cargo</option>
+                            <option value="Funcionário">Funcionário</option>
+                            <option value="Responsável">Responsável</option>
+                        </select>
                         <span class="error-message" id="cargoError"></span>
+                    </div>
+                    <div id="senhaResponsavelContainer" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Senha do Responsável</label>
+                        <input
+                            type="password"
+                            id="senhaResponsavelInput"
+                            class="w-full p-3 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500 senha-input"
+                            placeholder="Digite a senha para confirmar horas"
+                            minlength="4"
+                        >
+                        <span class="error-message" id="senhaResponsavelError"></span>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">ID (2 dígitos)</label>
@@ -615,6 +642,7 @@
         const SENHA_EDICAO = '4959';
         const SENHA_SUPERIOR = '4959';
         const SENHA_ACESSO = '4959';
+        const SENHA_RESPONSAVEL_PADRAO = '1234';
         let registroParaConfirmar = null;
         let abaSolicitada = null;
 
@@ -648,7 +676,7 @@
         async function criarDadosIniciais() {
             const dadosIniciais = [
                 { nome: 'Carlos Silva', cargo: 'Desenvolvedor', id: '01' },
-                { nome: 'Ana Souza', cargo: 'Gerente', id: '02' },
+                { nome: 'Ana Souza', cargo: 'Responsável', id: '02', senhaConfirmacao: '1234' },
                 { nome: 'Pedro Oliveira', cargo: 'Designer', id: '03' }
             ];
             
@@ -657,7 +685,8 @@
                 await setDoc(doc(db, "funcionarios", func.id), {
                     nome: func.nome,
                     cargo: func.cargo,
-                    id: func.id
+                    id: func.id,
+                    ...(func.senhaConfirmacao && { senhaConfirmacao: func.senhaConfirmacao })
                 });
             }
             
@@ -709,6 +738,7 @@
             const nome = document.getElementById('nomeInput').value.trim();
             const cargo = document.getElementById('cargoInput').value.trim();
             const id = document.getElementById('idInput').value.trim();
+            const senhaResponsavel = document.getElementById('senhaResponsavelInput').value;
 
             // Validações
             if (!/^\d{2}$/.test(id)) {
@@ -726,9 +756,28 @@
                 return;
             }
 
+            // Validação adicional para cargo de responsável
+            if (cargo === 'Responsável') {
+                if (!senhaResponsavel || senhaResponsavel.length < 4) {
+                    mostrarErro('senhaResponsavelInput', 'A senha deve ter pelo menos 4 caracteres');
+                    return;
+                }
+            }
+
             try {
                 const funcRef = doc(db, "funcionarios", id);
                 
+                const dadosFuncionario = {
+                    nome,
+                    cargo,
+                    id
+                };
+
+                // Adiciona senha apenas para responsáveis
+                if (cargo === 'Responsável') {
+                    dadosFuncionario.senhaConfirmacao = senhaResponsavel || SENHA_RESPONSAVEL_PADRAO;
+                }
+
                 if (modoEdicao && funcionarioEditando) {
                     // ATUALIZAÇÃO - Verifica se o ID foi alterado
                     if (id !== funcionarioEditando.id) {
@@ -737,10 +786,7 @@
                     }
                     
                     // Atualiza funcionário existente
-                    await updateDoc(funcRef, { 
-                        nome, 
-                        cargo
-                    });
+                    await updateDoc(funcRef, dadosFuncionario);
                     
                     // Atualiza registros de horas com o novo nome
                     await atualizarNomeNosRegistros(id, nome);
@@ -754,11 +800,7 @@
                     }
                     
                     // Adiciona novo funcionário
-                    await setDoc(doc(db, "funcionarios", id), { 
-                        nome, 
-                        cargo,
-                        id
-                    });
+                    await setDoc(funcRef, dadosFuncionario);
                 }
                 
                 // Atualiza a interface
@@ -890,15 +932,26 @@
 
         async function confirmarHoras() {
             const senha = document.getElementById('senhaConfirmacaoInput').value;
-            
-            if (senha !== SENHA_SUPERIOR) {
-                mostrarErro('senhaConfirmacaoInput', 'Senha incorreta! Confirmação não autorizada.');
-                return;
-            }
+            const registro = registrosHoras[registroParaConfirmar];
             
             try {
+                // Busca o responsável no banco de dados
+                const responsavelRef = doc(db, "funcionarios", registro.idFuncionario);
+                const responsavelSnap = await getDoc(responsavelRef);
+                
+                if (!responsavelSnap.exists() || responsavelSnap.data().cargo !== 'Responsável') {
+                    mostrarErro('senhaConfirmacaoInput', 'Apenas responsáveis podem confirmar horas');
+                    return;
+                }
+                
+                const senhaResponsavel = responsavelSnap.data().senhaConfirmacao || SENHA_RESPONSAVEL_PADRAO;
+                
+                if (senha !== senhaResponsavel) {
+                    mostrarErro('senhaConfirmacaoInput', 'Senha incorreta! Confirmação não autorizada.');
+                    return;
+                }
+                
                 // Atualiza o registro
-                const registro = registrosHoras[registroParaConfirmar];
                 const regRef = doc(db, "registrosHoras", registro.id);
                 
                 await updateDoc(regRef, {
@@ -1030,7 +1083,9 @@
             document.getElementById('nomeInput').value = '';
             document.getElementById('cargoInput').value = '';
             document.getElementById('idInput').value = '';
+            document.getElementById('senhaResponsavelInput').value = '';
             document.getElementById('idInput').disabled = false;
+            document.getElementById('senhaResponsavelContainer').classList.add('hidden');
         }
 
         function limparErros() {
@@ -1072,14 +1127,29 @@
                 document.getElementById('cargoInput').value = funcionario.cargo;
                 document.getElementById('idInput').value = funcionario.id;
                 document.getElementById('idInput').disabled = true;
+                
+                // Se for responsável, mostra o campo de senha
+                if (funcionario.cargo === 'Responsável') {
+                    document.getElementById('senhaResponsavelContainer').classList.remove('hidden');
+                    document.getElementById('senhaResponsavelInput').value = funcionario.senhaConfirmacao || '';
+                }
             }
         }
 
         function abrirModalConfirmacao(index) {
             registroParaConfirmar = index;
-            document.getElementById('modalConfirmacao').classList.remove('hidden');
-            document.getElementById('senhaConfirmacaoInput').value = '';
-            document.getElementById('senhaConfirmacaoInput').focus();
+            const registro = registrosHoras[index];
+            
+            // Verifica se o usuário logado é um responsável
+            const funcionarioAtual = funcionarios.find(f => f.id === registro.idFuncionario);
+            
+            if (funcionarioAtual && funcionarioAtual.cargo === 'Responsável') {
+                document.getElementById('modalConfirmacao').classList.remove('hidden');
+                document.getElementById('senhaConfirmacaoInput').value = '';
+                document.getElementById('senhaConfirmacaoInput').focus();
+            } else {
+                mostrarErroGeral("Apenas responsáveis podem confirmar horas");
+            }
         }
 
         function cancelarConfirmacao() {
@@ -1220,7 +1290,6 @@
                                     ${registro.status}
                                 </span>
                             </p>
-                            ${registro.observacoes ? `<p class="text-xs mt-1 truncate">${registro.observacoes}</p>` : ''}
                         </div>
                         <div class="flex flex-col items-end ml-2">
                             <p class="font-bold ${registro.horas < 0 ? 'text-red-600' : 'text-blue-600'} whitespace-nowrap">
@@ -1229,6 +1298,12 @@
                             ${botoes}
                         </div>
                     </div>
+                    ${registro.observacoes ? `
+                        <div class="mt-2 p-2 bg-gray-50 rounded text-sm">
+                            <p class="font-medium text-gray-700">Observações:</p>
+                            <p class="text-gray-600 whitespace-pre-wrap">${registro.observacoes}</p>
+                        </div>
+                    ` : ''}
                 `;
                 lista.appendChild(registroElement);
             });
@@ -1526,6 +1601,18 @@
             document.getElementById('cancelarBtn').addEventListener('click', esconderFormulario);
             document.getElementById('salvarBtn').addEventListener('click', salvarFuncionario);
             document.getElementById('registrarHorasBtn').addEventListener('click', registrarHorasExtras);
+            
+            // Mostrar/ocultar campo de senha para responsáveis
+            document.getElementById('cargoInput').addEventListener('change', function() {
+                const senhaContainer = document.getElementById('senhaResponsavelContainer');
+                if (this.value === 'Responsável') {
+                    senhaContainer.classList.remove('hidden');
+                    document.getElementById('senhaResponsavelInput').required = true;
+                } else {
+                    senhaContainer.classList.add('hidden');
+                    document.getElementById('senhaResponsavelInput').required = false;
+                }
+            });
             
             // Exportação
             document.getElementById('exportPdfBtn').addEventListener('click', exportarParaPDF);
