@@ -1141,11 +1141,14 @@
 
         
         function abrirModalConfirmacao(index) {
-    registroParaConfirmar = index;
-    document.getElementById('modalConfirmacao').classList.remove('hidden');
-    document.getElementById('senhaConfirmacaoInput').value = '';
-    document.getElementById('senhaConfirmacaoInput').focus();
-}
+            registroParaConfirmar = index;
+            const registro = registrosHoras[index];
+
+            // Abre o modal para digitar a senha do responsável
+            document.getElementById('modalConfirmacao').classList.remove('hidden');
+            document.getElementById('senhaConfirmacaoInput').value = '';
+            document.getElementById('senhaConfirmacaoInput').focus();
+        }
 
 
         function cancelarConfirmacao() {
