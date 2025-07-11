@@ -456,6 +456,19 @@
             <h3 class="text-lg font-bold mb-3">Confirmação do Superior</h3>
             <div class="space-y-3">
                 <p class="text-sm text-gray-600">Digite a senha para confirmar as horas extras:</p>
+<div>
+    <label class="block text-sm font-medium mb-1">ID do Responsável</label>
+    <input
+        id="idResponsavelConfirmacaoInput"
+        placeholder="Ex: 02"
+        class="w-full p-2 border rounded-lg"
+        maxlength="2"
+        pattern="\d{2}"
+        inputmode="numeric"
+        required
+    >
+    <span class="error-message" id="idResponsavelConfirmacaoError"></span>
+</div>
                 <input
                     type="password"
                     id="senhaConfirmacaoInput"
@@ -931,18 +944,48 @@
         }
 
         async function confirmarHoras() {
-            const senha = document.getElementById('senhaConfirmacaoInput').value;
-            const registro = registrosHoras[registroParaConfirmar];
-            
-            try {
-                // Busca o responsável no banco de dados
-                const responsavelRef = doc(db, "funcionarios", registro.idFuncionario);
-                const responsavelSnap = await getDoc(responsavelRef);
-                
-                if (!responsavelSnap.exists() || responsavelSnap.data().cargo !== 'Responsável') {
-                    mostrarErro('senhaConfirmacaoInput', 'Apenas responsáveis podem confirmar horas');
-                    return;
-                }
+    // Limpa erros anteriores
+    limparErros();
+
+    const idResponsavel = document.getElementById('idResponsavelConfirmacaoInput').value.trim();
+    const senha = document.getElementById('senhaConfirmacaoInput').value;
+
+    if (!/^\d{2}$/.test(idResponsavel)) {
+        mostrarErro('idResponsavelConfirmacaoInput', 'ID deve ter 2 dígitos');
+        return;
+    }
+
+    try {
+        const responsavelRef = doc(db, "funcionarios", idResponsavel);
+        const responsavelSnap = await getDoc(responsavelRef);
+
+        if (!responsavelSnap.exists() || responsavelSnap.data().cargo !== 'Responsável') {
+            mostrarErro('idResponsavelConfirmacaoInput', 'Responsável não encontrado');
+            return;
+        }
+
+        const senhaResponsavel = responsavelSnap.data().senhaConfirmacao || SENHA_RESPONSAVEL_PADRAO;
+        if (senha !== senhaResponsavel) {
+            mostrarErro('senhaConfirmacaoInput', 'Senha incorreta!');
+            return;
+        }
+
+        const registro = registrosHoras[registroParaConfirmar];
+        const regRef = doc(db, "registrosHoras", registro.id);
+        await updateDoc(regRef, {
+            status: 'Confirmado',
+            dataConfirmacao: moment().format('DD/MM/YYYY HH:mm')
+        });
+
+        document.getElementById('modalConfirmacao').classList.add('hidden');
+        await carregarDados();
+        mostrarSucesso('Horas extras confirmadas com sucesso!');
+        registroParaConfirmar = null;
+    } catch (e) {
+        console.error("Erro ao confirmar horas:", e);
+        mostrarErroGeral("Ocorreu um erro ao confirmar. Tente novamente.");
+    }
+}
                 
                 const senhaResponsavel = responsavelSnap.data().senhaConfirmacao || SENHA_RESPONSAVEL_PADRAO;
                 
@@ -1143,8 +1186,9 @@
         function abrirModalConfirmacao(index) {
     registroParaConfirmar = index;
     document.getElementById('modalConfirmacao').classList.remove('hidden');
+    document.getElementById('idResponsavelConfirmacaoInput').value = '';
     document.getElementById('senhaConfirmacaoInput').value = '';
-    document.getElementById('senhaConfirmacaoInput').focus();
+    document.getElementById('idResponsavelConfirmacaoInput').focus();
 }
 
 
