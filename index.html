@@ -1139,21 +1139,17 @@
             }
         }
 
+        
         function abrirModalConfirmacao(index) {
             registroParaConfirmar = index;
             const registro = registrosHoras[index];
-            
-            // Verifica se o usuário logado é um responsável
-            const funcionarioAtual = funcionarios.find(f => f.id === registro.idFuncionario);
-            
-            if (funcionarioAtual && funcionarioAtual.cargo === 'Responsável') {
-                document.getElementById('modalConfirmacao').classList.remove('hidden');
-                document.getElementById('senhaConfirmacaoInput').value = '';
-                document.getElementById('senhaConfirmacaoInput').focus();
-            } else {
-                mostrarErroGeral("Apenas responsáveis podem confirmar horas");
-            }
+
+            // Abre o modal para digitar a senha do responsável
+            document.getElementById('modalConfirmacao').classList.remove('hidden');
+            document.getElementById('senhaConfirmacaoInput').value = '';
+            document.getElementById('senhaConfirmacaoInput').focus();
         }
+
 
         function cancelarConfirmacao() {
             document.getElementById('modalConfirmacao').classList.add('hidden');
