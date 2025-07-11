@@ -970,44 +970,46 @@
             }
         }
 
+        
         async function atualizarHistorico() {
             const dataInicial = document.getElementById('dataInicialFilter').value;
             const dataFinal = document.getElementById('dataFinalFilter').value;
             const idFuncionario = document.getElementById('funcionarioFilter').value;
             const status = document.getElementById('statusFilter').value;
-            
+
             try {
-                let q = collection(db, "registrosHoras");
-                
-                // Aplica filtros
-                const conditions = [];
-                
-                if (dataInicial) {
-                    conditions.push(where("data", ">=", moment(dataInicial).format('DD/MM/YYYY')));
+                let registros = [];
+
+                if (idFuncionario || status) {
+                    // Caso tenham filtros de igualdade (id/status), pegamos só eles
+                    const condicoes = [];
+                    if (idFuncionario) condicoes.push(where("idFuncionario", "==", idFuncionario));
+                    if (status) condicoes.push(where("status", "==", status));
+
+                    const snap = await getDocs(query(collection(db, "registrosHoras"), ...condicoes));
+                    registros = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                    // Filtra período no cliente
+                    registros = registros.filter(r => {
+                        const d = moment(r.data, "DD/MM/YYYY");
+                        return (!dataInicial || d.isSameOrAfter(moment(dataInicial))) &&
+                               (!dataFinal   || d.isSameOrBefore(moment(dataFinal)));
+                    });
+
+                    // Ordena localmente por data desc
+                    registros.sort((a, b) => moment(b.data, "DD/MM/YYYY").diff(moment(a.data, "DD/MM/YYYY")));
+                } else {
+                    // Sem igualdade, podemos usar intervalo + orderBy (um único campo = sem índice composto)
+                    const condicoes = [];
+                    if (dataInicial) condicoes.push(where("data", ">=", moment(dataInicial).format("DD/MM/YYYY")));
+                    if (dataFinal)   condicoes.push(where("data", "<=", moment(dataFinal).format("DD/MM/YYYY")));
+                    condicoes.push(orderBy("data", "desc"));
+
+                    const snap = await getDocs(query(collection(db, "registrosHoras"), ...condicoes));
+                    registros = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 }
-                
-                if (dataFinal) {
-                    conditions.push(where("data", "<=", moment(dataFinal).format('DD/MM/YYYY')));
-                }
-                
-                if (idFuncionario) {
-                    conditions.push(where("idFuncionario", "==", idFuncionario));
-                }
-                
-                if (status) {
-                    conditions.push(where("status", "==", status));
-                }
-                
-                // Ordena por data (mais recente primeiro)
-                conditions.push(orderBy("data", "desc"));
-                
-                // Cria a query com os filtros
-                q = query(q, ...conditions);
-                
-                const querySnapshot = await getDocs(q);
-                registrosHoras = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Atualiza interface
+
+                registrosHoras = registros;
                 atualizarListaHistorico(registrosHoras);
                 atualizarResumoHistorico(registrosHoras, dataInicial, dataFinal, idFuncionario);
             } catch (e) {
@@ -1015,6 +1017,7 @@
                 mostrarErroGeral("Ocorreu um erro ao filtrar. Tente novamente.");
             }
         }
+
 
         // Funções de UI
         function alternarAba(aba) {
